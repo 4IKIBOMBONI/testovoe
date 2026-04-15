@@ -4,14 +4,34 @@ import os
 from dataclasses import dataclass, field
 
 
+def _default_api_key() -> str:
+    """Pick API key based on provider."""
+    provider = os.getenv("LLM_PROVIDER", "yandex").lower()
+    if provider == "yandex":
+        return os.getenv("YANDEX_API_KEY", "")
+    return os.getenv("ANTHROPIC_API_KEY", "")
+
+
+def _default_model() -> str:
+    provider = os.getenv("LLM_PROVIDER", "yandex").lower()
+    if provider == "yandex":
+        return os.getenv("LLM_MODEL", "yandexgpt/latest")
+    return os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
+
+
 @dataclass
 class Config:
     # LLM API settings
-    llm_provider: str = os.getenv("LLM_PROVIDER", "anthropic")
-    api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
-    model: str = os.getenv("LLM_MODEL", "claude-sonnet-4-20250514")
+    llm_provider: str = os.getenv("LLM_PROVIDER", "yandex")
+    api_key: str = field(default_factory=_default_api_key)
+    model: str = field(default_factory=_default_model)
     max_tokens: int = int(os.getenv("LLM_MAX_TOKENS", "4096"))
     temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.3"))
+
+    # Yandex-specific
+    yandex_folder_id: str = field(
+        default_factory=lambda: os.getenv("YANDEX_FOLDER_ID", "")
+    )
 
     # Retry settings
     max_retries: int = 3

@@ -21,7 +21,7 @@ from typing import Any
 
 from src.config import Config
 from src.demo import run_demo_pipeline
-from src.llm_client import LLMClient
+from src.llm_factory import build_llm_client
 from src.output_generator import save_excel, save_json
 from src.pipeline import process_application
 
@@ -67,13 +67,21 @@ def run(config: Config, demo: bool = False) -> None:
         return
 
     if not config.api_key:
+        env_name = (
+            "YANDEX_API_KEY" if config.llm_provider == "yandex" else "ANTHROPIC_API_KEY"
+        )
         logger.error(
-            "API key not set. Set ANTHROPIC_API_KEY environment variable "
-            "or use --demo for demo mode."
+            "API key not set. Set %s environment variable "
+            "or use --demo for demo mode.",
+            env_name,
         )
         sys.exit(1)
 
-    llm = LLMClient(config)
+    try:
+        llm = build_llm_client(config)
+    except ValueError as e:
+        logger.error(str(e))
+        sys.exit(1)
 
     all_results: list[dict[str, Any]] = []
     all_calendar: list[dict[str, Any]] = []
@@ -189,13 +197,30 @@ def main() -> None:
         help="Minimum PR score threshold (default: 5)",
     )
     parser.add_argument(
+        "--provider", "-p",
+        choices=["yandex", "anthropic"],
+        default=None,
+        help="LLM provider (default: yandex, or LLM_PROVIDER env)",
+    )
+    parser.add_argument(
+        "--folder-id",
+        default=None,
+        help="Yandex folder ID (for yandex provider)",
+    )
+    parser.add_argument(
         "--demo",
         action="store_true",
         help="Run in demo mode without LLM API calls (generates sample output)",
     )
     args = parser.parse_args()
 
+    # If provider is overridden via CLI, we must rebuild config so that
+    # api_key/model defaults pick up the right provider-specific env vars.
+    if args.provider:
+        import os
+        os.environ["LLM_PROVIDER"] = args.provider
     config = Config()
+
     if args.input:
         config.input_path = args.input
     if args.output:
@@ -204,6 +229,8 @@ def main() -> None:
         config.model = args.model
     if args.min_pr_score is not None:
         config.min_pr_score = args.min_pr_score
+    if args.folder_id:
+        config.yandex_folder_id = args.folder_id
 
     run(config, demo=args.demo)
 

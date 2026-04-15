@@ -4,14 +4,29 @@ Python-пайплайн для анализа заявок на президен
 
 ## API
 
-Используется **Anthropic Claude API** (модель `claude-sonnet-4-20250514`). Ключ задаётся через переменную окружения `ANTHROPIC_API_KEY`.
+По умолчанию используется **Yandex GPT API** (Yandex Cloud AI Studio, модель `yandexgpt/latest`). Также поддержан **Anthropic Claude** как альтернативный провайдер.
 
-## Запуск
+## Запуск (Yandex GPT)
+
+```bash
+pip install -r requirements.txt
+export YANDEX_API_KEY="AQVN..."           # API-ключ из Yandex Cloud AI Studio
+export YANDEX_FOLDER_ID="b1..."           # folder_id твоего каталога
+python main.py --provider yandex --input data/sample_applications.json --output output
+```
+
+## Запуск (Anthropic Claude)
 
 ```bash
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY="sk-ant-..."
-python main.py --input data/sample_applications.json --output output
+python main.py --provider anthropic --input data/sample_applications.json --output output
+```
+
+## Демо-режим (без API-ключа)
+
+```bash
+python main.py --demo
 ```
 
 Результаты появятся в папке `output/`: файл `results.json` и `results.xlsx`.
